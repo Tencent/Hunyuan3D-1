@@ -91,7 +91,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 bash env_install.sh
 ```
 <details>
-<summary>💡Other tips for envrionment installation</summary>
+<summary>💡Other tips for environment installation</summary>
     
 Optionally, you can install xformers or flash_attn to acclerate computation:
 
