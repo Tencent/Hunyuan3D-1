@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -22,10 +24,7 @@
 
 import os
 import warnings
-warnings.simplefilter('ignore', category=UserWarning)
-warnings.simplefilter('ignore', category=FutureWarning)
-warnings.simplefilter('ignore', category=DeprecationWarning)
-
+import argparse
 import gradio as gr
 from glob import glob
 import shutil
@@ -34,7 +33,12 @@ import numpy as np
 from PIL import Image
 from einops import rearrange
 
-import argparse
+from infer import seed_everything, save_gif
+from infer import Text2Image, Removebg, Image2Views, Views2Mesh, GifRenderer
+
+warnings.simplefilter('ignore', category=UserWarning)
+warnings.simplefilter('ignore', category=FutureWarning)
+warnings.simplefilter('ignore', category=DeprecationWarning)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--use_lite", default=False, action="store_true")
@@ -45,6 +49,8 @@ parser.add_argument("--save_memory", default=False, action="store_true")
 parser.add_argument("--device", default="cuda:0", type=str)
 args = parser.parse_args()
 
+################################################################
+# initial setting
 ################################################################
 
 CONST_PORT = 8080
@@ -57,10 +63,10 @@ Generationr</b></a></h2>
 Code: <a href='https://github.com/tencent/Hunyuan3D-1' target='_blank'>GitHub</a>. Techenical report: <a href='https://arxiv.org/abs/placeholder' target='_blank'>ArXiv</a>.
 
 ❗️❗️❗️**Important Notes:**
-- Our demo can export a .obj mesh with vertex colors or a .glb mesh by default. 
-- If you check "texture mapping", it will export a .obj mesh with a texture map or a .glb mesh.
-- If you check "render Gif", it will export gif image rendering .glb file.
-- If the result is unsatisfying, please try a different **seed value** (Default: 0).
+- By default, our demo can export a .obj mesh with vertex colors or a .glb mesh.
+- If you select "texture mapping," it will export a .obj mesh with a texture map or a .glb mesh.
+- If you select "render GIF," it will export a GIF image rendering of the .glb file.
+- If the result is unsatisfactory, please try a different seed value (Default: 0).
 '''
 
 CONST_CITATION = r"""
@@ -81,6 +87,8 @@ If you find our work useful for your research or applications, please cite using
 """
 
 ################################################################
+# prepare text examples and image examples
+################################################################
 
 def get_example_img_list():
     print('Loading example img list ...')
@@ -95,11 +103,10 @@ def get_example_txt_list():
 
 example_is = get_example_img_list()
 example_ts = get_example_txt_list()
+
 ################################################################
-
-from infer import seed_everything, save_gif
-from infer import Text2Image, Removebg, Image2Views, Views2Mesh, GifRenderer
-
+# initial models
+################################################################
 
 worker_xbg = Removebg()
 print(f"loading {args.text2image_path}")
@@ -110,18 +117,19 @@ worker_t2i = Text2Image(
 )
 worker_i2v = Image2Views(
     use_lite = args.use_lite, 
-    device = args.device
+    device = args.device,
+    save_memory = args.save_memory
 )
 worker_v23 = Views2Mesh(
     args.mv23d_cfg_path, 
     args.mv23d_ckt_path, 
     use_lite = args.use_lite, 
-    device = args.device
+    device = args.device,
+    save_memory = args.save_memory
 )
 worker_gif = GifRenderer(args.device)
 
 def stage_0_t2i(text, image, seed, step):
-    # prepare save_folder
     os.makedirs('./outputs/app_output', exist_ok=True)
     exists = set(int(_) for _ in os.listdir('./outputs/app_output') if not _.startswith("."))
     if len(exists) == 30: shutil.rmtree(f"./outputs/app_output/0");cur_id = 0
@@ -197,8 +205,9 @@ def stage_4_gif(obj_dst, save_folder, do_render_gif=True):
         gif_dst_path = gif_dst
     )
     return gif_dst
-
-#===============================================================
+# ===============================================================
+# gradio display
+# ===============================================================
 with gr.Blocks() as demo:
     gr.Markdown(CONST_HEADER)
     with gr.Row(variant="panel"):
@@ -237,24 +246,50 @@ with gr.Blocks() as demo:
                         imggen_do_render_gif = gr.Checkbox(label="Render gif", value=False, interactive=True)
                         imggen_submit = gr.Button("Generate", variant="primary")       
                     with gr.Row():
-                        gr.Examples(examples=example_is, inputs=[input_image], label="Img examples", examples_per_page=10)
+                        gr.Examples(
+                            examples=example_is, 
+                            inputs=[input_image], 
+                            label="Img examples",
+                            examples_per_page=10
+                        )
            
         with gr.Column(scale=3):
-            with gr.Tab("rembg image"):
-                rem_bg_image = gr.Image(label="No backgraound image",
-                                       width=256, height=256, type="pil",
-                                       image_mode="RGBA", interactive=False)
-            
-            with gr.Tab("Multi views"):
-                result_image = gr.Image(label="Multi views", type="pil", interactive=False)
-            with gr.Tab("Obj"):
-                result_3dobj = gr.Model3D(label="Output obj", interactive=False)
-            with gr.Tab("Glb"):
-                result_3dglb = gr.Model3D(label="Output glb", interactive=False)
-                gr.Markdown("The glb file displayed on the grario will be dark. We recommend downloading and opening it with 3D software, such as Blender, MeshLab, etc")
-            with gr.Tab("GIF"):
-                result_gif = gr.Image(label="Rendered GIF", interactive=False)
+            with gr.Row():
+                with gr.Column(scale=2):
+                    rem_bg_image = gr.Image(label="No backgraound image", type="pil",
+                                           image_mode="RGBA", interactive=False)
+                with gr.Column(scale=3):
+                    result_image = gr.Image(label="Multi views", type="pil", interactive=False)
+                
+            with gr.Row():                
+                result_3dobj = gr.Model3D(
+                    clear_color=[0.0, 0.0, 0.0, 0.0],
+                    label="Output Obj",
+                    show_label=True,
+                    visible=True,
+                    camera_position=[90, 90, None],
+                    interactive=False
+                )
 
+                result_3dglb = gr.Model3D(
+                    clear_color=[0.0, 0.0, 0.0, 0.0],
+                    label="Output Glb",
+                    show_label=True,
+                    visible=True,
+                    camera_position=[90, 90, None],
+                    interactive=False
+                )
+                result_gif = gr.Image(label="Rendered GIF", interactive=False)
+                
+            with gr.Row():    
+                gr.Markdown("""
+                We recommend downloading and opening Glb with 3D software, such as Blender, MeshLab, etc.
+                
+                Limited by gradio, Obj file here only be shown as vertex shading, but Glb can be texture shading.
+                """)
+
+#===============================================================
+# gradio running code
 #===============================================================
 
     none = gr.State(None)
@@ -270,7 +305,9 @@ with gr.Blocks() as demo:
         fn=stage_2_i2v, inputs=[rem_bg_image, textgen_SEED, textgen_STEP, save_folder], 
         outputs=[views_image, cond_image, result_image],
     ).success(
-        fn=stage_3_v23, inputs=[views_image, cond_image, textgen_SEED, save_folder, textgen_max_faces, textgen_do_texture_mapping, textgen_do_render_gif], 
+        fn=stage_3_v23, inputs=[views_image, cond_image, textgen_SEED, save_folder, 
+                                textgen_max_faces, textgen_do_texture_mapping,
+                                textgen_do_render_gif], 
         outputs=[result_3dobj, result_3dglb],
     ).success(
         fn=stage_4_gif, inputs=[result_3dglb, save_folder, textgen_do_render_gif], 
@@ -287,13 +324,17 @@ with gr.Blocks() as demo:
         fn=stage_2_i2v, inputs=[rem_bg_image, imggen_SEED, imggen_STEP, save_folder], 
         outputs=[views_image, cond_image, result_image],
     ).success(
-        fn=stage_3_v23, inputs=[views_image, cond_image, imggen_SEED, save_folder, imggen_max_faces, imggen_do_texture_mapping, imggen_do_render_gif], 
+        fn=stage_3_v23, inputs=[views_image, cond_image, imggen_SEED, save_folder, 
+                                imggen_max_faces, imggen_do_texture_mapping, 
+                                imggen_do_render_gif], 
         outputs=[result_3dobj, result_3dglb],
     ).success(
         fn=stage_4_gif, inputs=[result_3dglb, save_folder, imggen_do_render_gif], 
         outputs=[result_gif],
     ).success(lambda: print('Image_to_3D Done ...'))
     
+#===============================================================
+# start gradio server
 #===============================================================
 
     gr.Markdown(CONST_CITATION)

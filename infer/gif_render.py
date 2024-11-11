@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -20,8 +22,11 @@
 # fine-tuning enabling code and other elements of the foregoing made publicly available 
 # by Tencent in accordance with TENCENT HUNYUAN COMMUNITY LICENSE AGREEMENT.
 
+import os, sys
+sys.path.insert(0, f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")
+
 from svrm.ldm.vis_util import render
-from .utils import seed_everything, timing_decorator
+from infer.utils import seed_everything, timing_decorator
 
 class GifRenderer():
     '''
@@ -53,3 +58,22 @@ class GifRenderer():
             device=self.device, 
             rgb=rgb
         )
+
+if __name__ == "__main__":
+    import argparse
+    
+    def get_args():
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--mesh_path", type=str, required=True)
+        parser.add_argument("--output_gif_path", type=str, required=True)
+        parser.add_argument("--device", default="cuda:0", type=str)
+        return parser.parse_args()
+        
+    args = get_args()
+
+    gif_renderer = GifRenderer(device=args.device)
+
+    gif_renderer(
+        args.mesh_path,
+        gif_dst_path = args.output_gif_path
+    )

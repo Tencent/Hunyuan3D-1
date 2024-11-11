@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -62,10 +64,10 @@ EXAMPLE_DOC_STRING = """
     Examples:
         ```py
         >>> import torch
-        >>> from here import Hunyuan3d_MVD_Qing_Pipeline
+        >>> from here import Hunyuan3d_MVD_Lite_Pipeline
 
-        >>> pipe = Hunyuan3d_MVD_Qing_Pipeline.from_pretrained(
-        ...     "Tencent-Hunyuan-3D/MVD-Qing", torch_dtype=torch.float16
+        >>> pipe = Hunyuan3d_MVD_Lite_Pipeline.from_pretrained(
+        ...     "weights/mvd_lite", torch_dtype=torch.float16
         ... )
         >>> pipe.to("cuda")
 
@@ -173,18 +175,17 @@ class Hunyuan3d_MVD_Lite_Pipeline(DiffusionPipeline, TextualInversionLoaderMixin
             text_encoder=text_encoder,
             vision_encoder=vision_encoder,
             feature_extractor_vae=feature_extractor_vae,
-            feature_extractor_clip=feature_extractor_clip)
-        '''
-            rewrite the stable diffusion pipeline
-            vae: vae
-            unet: unet
-            tokenizer: tokenizer
-            scheduler: scheduler
-            text_encoder: text_encoder
-            vision_encoder: vision_encoder
-            feature_extractor_vae: feature_extractor_vae
-            feature_extractor_clip: feature_extractor_clip
-        '''
+            feature_extractor_clip=feature_extractor_clip
+        )
+            # rewrite the stable diffusion pipeline
+            # vae: vae
+            # unet: unet
+            # tokenizer: tokenizer
+            # scheduler: scheduler
+            # text_encoder: text_encoder
+            # vision_encoder: vision_encoder
+            # feature_extractor_vae: feature_extractor_vae
+            # feature_extractor_clip: feature_extractor_clip
         self.register_to_config(ramping_coefficients=ramping_coefficients)
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
         self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)

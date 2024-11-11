@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -20,7 +22,9 @@
 # fine-tuning enabling code and other elements of the foregoing made publicly available 
 # by Tencent in accordance with TENCENT HUNYUAN COMMUNITY LICENSE AGREEMENT.
 
-import os
+import os, sys
+sys.path.insert(0, f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")
+
 import time
 import torch
 import random
@@ -29,28 +33,43 @@ from PIL import Image
 from einops import rearrange
 from PIL import Image, ImageSequence
 
-from .utils import seed_everything, timing_decorator, auto_amp_inference
-from .utils import get_parameter_number, set_parameter_grad_false
+from infer.utils import seed_everything, timing_decorator, auto_amp_inference
+from infer.utils import get_parameter_number, set_parameter_grad_false, str_to_bool
 from svrm.predictor import MV23DPredictor
 
 
 class Views2Mesh():
-    def __init__(self, mv23d_cfg_path, mv23d_ckt_path, device="cuda:0", use_lite=False):
+    def __init__(self, mv23d_cfg_path, mv23d_ckt_path, 
+                 device="cuda:0", use_lite=False, save_memory=False):
         '''
             mv23d_cfg_path: config yaml file 
             mv23d_ckt_path: path to ckpt
-            use_lite: 
+            use_lite: lite version
+            save_memory: cpu auto
         '''
         self.mv23d_predictor = MV23DPredictor(mv23d_ckt_path, mv23d_cfg_path, device=device)  
         self.mv23d_predictor.model.eval()
         self.order = [0, 1, 2, 3, 4, 5] if use_lite else [0, 2, 4, 5, 3, 1]
+        self.device = device
+        self.save_memory = save_memory
         set_parameter_grad_false(self.mv23d_predictor.model)
         print('view2mesh model', get_parameter_number(self.mv23d_predictor.model))
 
     @torch.no_grad()
     @timing_decorator("views to mesh")
     @auto_amp_inference
-    def __call__(
+    def __call__(self, *args, **kwargs):
+        if self.save_memory:
+            self.mv23d_predictor.model = self.mv23d_predictor.model.to(self.device)
+            torch.cuda.empty_cache()
+            res = self.call(*args, **kwargs)
+            self.mv23d_predictor.model = self.mv23d_predictor.model.to("cpu")
+        else:
+            res = self.call(*args, **kwargs)
+        torch.cuda.empty_cache()
+        return res
+
+    def call(
         self,
         views_pil=None, 
         cond_pil=None, 
@@ -91,4 +110,45 @@ class Views2Mesh():
         )
         torch.cuda.empty_cache()
         return save_dir
+
+
+if __name__ == "__main__":
+    
+    import argparse
+    
+    def get_args():
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--views_path", type=str, required=True)
+        parser.add_argument("--cond_path", type=str, required=True)
+        parser.add_argument("--save_folder", default="./outputs/test/", type=str)
+        parser.add_argument("--mv23d_cfg_path", default="./svrm/configs/svrm.yaml", type=str)
+        parser.add_argument("--mv23d_ckt_path", default="weights/svrm/svrm.safetensors", type=str)
+        parser.add_argument("--max_faces_num", default=90000, type=int, 
+            help="max num of face, suggest 90000 for effect, 10000 for speed")
+        parser.add_argument("--device", default="cuda:0", type=str)
+        parser.add_argument("--use_lite", default='false', type=str)
+        parser.add_argument("--do_texture_mapping", default='false', type=str)
         
+        return parser.parse_args()
+        
+    args = get_args()
+    args.use_lite = str_to_bool(args.use_lite)
+    args.do_texture_mapping = str_to_bool(args.do_texture_mapping)
+
+    views = Image.open(args.views_path)
+    cond = Image.open(args.cond_path)
+
+    views_to_mesh_model = Views2Mesh(
+        args.mv23d_cfg_path, 
+        args.mv23d_ckt_path,
+        device = args.device, 
+        use_lite = args.use_lite
+    )
+
+    views_to_mesh_model(
+        views,  cond,  0,
+        target_face_count = args.max_faces_num,
+        save_folder = args.save_folder,
+        do_texture_mapping = args.do_texture_mapping
+    )
+

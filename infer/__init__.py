@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -20,9 +22,11 @@
 # fine-tuning enabling code and other elements of the foregoing made publicly available 
 # by Tencent in accordance with TENCENT HUNYUAN COMMUNITY LICENSE AGREEMENT.
 
-from .utils import seed_everything, timing_decorator, auto_amp_inference
-from .rembg import Removebg
+from .removebg import Removebg
 from .text_to_image import Text2Image
 from .image_to_views import Image2Views, save_gif
 from .views_to_mesh import Views2Mesh
 from .gif_render import GifRenderer
+
+from .utils import seed_everything, auto_amp_inference
+from .utils import get_parameter_number, set_parameter_grad_false

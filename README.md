@@ -168,34 +168,43 @@ We list some more useful configurations for easy usage:
 |`--gen_seed`     |    0      |The random seed for generating 3d generation        |
 |`--gen_steps`    |    50     |The number of steps for sampling of 3d generation  |
 |`--max_faces_numm` | 90000  |The limit number of faces of 3d mesh |
-|`--save_memory`   | False   |text2image will move to cpu automatically|
+|`--save_memory`   | False   |module will move to cpu automatically|
 |`--do_texture_mapping` |   False    |Change vertex shadding to texture shading  |
 |`--do_render`  |   False   |render gif   |
 
 
 We have also prepared scripts with different configurations for reference
+- Inference Std-pipeline requires 30GB VRAM (24G VRAM with --save_memory).
+- Inference Lite-pipeline requires 22GB VRAM (18G VRAM with --save_memory).
+- Note: --save_memory will increase inference time
+
 ```bash
-bash scripts/text_to_3d_demo.sh 
-bash scripts/text_to_3d_fast_demo.sh 
-bash scripts/image_to_3d_demo.sh 
-bash scripts/image_to_3d_fast_demo.sh 
+bash scripts/text_to_3d_std.sh 
+bash scripts/text_to_3d_lite.sh 
+bash scripts/image_to_3d_std.sh 
+bash scripts/image_to_3d_lite.sh 
 ```
 
-This example requires ~22GB VRAM to run.
+If your gpu memory is 16G, you can try to run modules in pipeline seperately:
+```bash
+bash scripts/text_to_3d_std_separately.sh 'a lovely rabbit' ./outputs/test # >= 16G
+bash scripts/text_to_3d_lite_separately.sh 'a lovely rabbit' ./outputs/test # >= 14G
+bash scripts/image_to_3d_std_separately.sh ./demos/example_000.png ./outputs/test  # >= 16G
+bash scripts/image_to_3d_lite_separately.sh ./demos/example_000.png ./outputs/test # >= 10G
+```
 
 #### Using Gradio
 
 We have prepared two versions of multi-view generation, std and lite.
 
-For better results, the std version of the running script is as follows
 ```shell
+# std 
 python3 app.py
-```
+python3 app.py --save_memory
 
-For faster speed, you can use the lite version by adding the --use_lite parameter.
-
-```shell
+# lite
 python3 app.py --use_lite
+python3 app.py --use_lite --save_memory
 ```
 
 Then the demo can be accessed through http://0.0.0.0:8080. It should be noted that the 0.0.0.0 here needs to be X.X.X.X with your server IP.

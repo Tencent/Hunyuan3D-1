@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -75,3 +77,11 @@ def get_parameter_number(model):
 def set_parameter_grad_false(model):
     for p in model.parameters():
         p.requires_grad = False
+
+def str_to_bool(s):
+    if s.lower() in ['true', 't', 'yes', 'y', '1']: 
+        return True
+    elif s.lower() in ['false', 'f', 'no', 'n', '0']: 
+        return False
+    else: 
+        raise f"bool arg must one of ['true', 't', 'yes', 'y', '1', 'false', 'f', 'no', 'n', '0']"

@@ -1,5 +1,7 @@
-# Open Source Model Licensed under the Apache License Version 2.0 and Other Licenses of the Third-Party Components therein:
-# The below Model in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
+# Open Source Model Licensed under the Apache License Version 2.0 
+# and Other Licenses of the Third-Party Components therein:
+# The below Model in this distribution may have been modified by THL A29 Limited 
+# ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2024 THL A29 Limited.
 
 # Copyright (C) 2024 THL A29 Limited, a Tencent company.  All rights reserved. 
 # The below software and/or models in this distribution may have been 
@@ -68,7 +70,8 @@ def uv_padding(image, hole_mask, uv_padding_size = 2):
 def refine_mesh(vtx_refine, faces_refine):
     mesh = o3d.geometry.TriangleMesh(
         vertices=o3d.utility.Vector3dVector(vtx_refine), 
-        triangles=o3d.utility.Vector3iVector(faces_refine))
+        triangles=o3d.utility.Vector3iVector(faces_refine)
+    )
 
     mesh = mesh.remove_unreferenced_vertices()
     mesh = mesh.remove_duplicated_triangles()
@@ -96,13 +99,13 @@ class SVRMModel(torch.nn.Module):
         device = "cuda:0",
         **kwargs
     ):
-        super().__init__()
-
+        super(SVRMModel, self).__init__()
         self.img_encoder = instantiate_from_config(img_encoder_config).half()
         self.img_to_triplane_decoder = instantiate_from_config(img_to_triplane_config).half()
         self.render = instantiate_from_config(render_config).half()
         self.device = device
         count_params(self, verbose=True)
+        
 
     @torch.no_grad()
     def export_mesh_with_uv(
@@ -119,7 +122,15 @@ class SVRMModel(torch.nn.Module):
         """
         color_type: 0 for ray texture, 1 for vertices texture
         """
+        
+        obj_vertext_path = os.path.join(out_dir, 'mesh_with_colors.obj')
+        obj_path = os.path.join(out_dir, 'mesh.obj')
+        obj_texture_path = os.path.join(out_dir, 'texture.png')
+        obj_mtl_path = os.path.join(out_dir, 'texture.mtl')
+        glb_path = os.path.join(out_dir, 'mesh.glb')
+
         st = time.time()
+        
         here = {'device': self.device, 'dtype': torch.float16}
         input_view_image = data["input_view"].to(**here)    # [b, m, c, h, w]
         input_view_cam = data["input_view_cam"].to(**here)  # [b, m, 20]
@@ -145,7 +156,7 @@ class SVRMModel(torch.nn.Module):
         aabb = torch.tensor([[-0.6, -0.6, -0.6], [0.6, 0.6, 0.6]]).unsqueeze(0).to(**here)
         grid_out = self.render.forward_grid(planes=cur_triplane, grid_size=mesh_size, aabb=aabb)
 
-        print(f"=====> LRM forward time: {time.time() - st}")
+        print(f"=====> Triplane forward time: {time.time() - st}")
         st = time.time()
         
         vtx, faces = mcubes.marching_cubes(0. - grid_out['sdf'].squeeze(0).squeeze(-1).cpu().float().numpy(), 0)
@@ -180,7 +191,7 @@ class SVRMModel(torch.nn.Module):
         vtx_colors = vtx_colors['rgb'].float().squeeze(0).cpu().numpy()
 
         color_ratio = 0.8 # increase brightness
-        with open(f'{out_dir}/mesh_with_colors.obj', 'w') as fid:
+        with open(obj_vertext_path, 'w') as fid:
             verts = vtx_refine[:, [1,2,0]] 
             for pidx, pp in enumerate(verts):
                 color = vtx_colors[pidx]
@@ -190,16 +201,19 @@ class SVRMModel(torch.nn.Module):
                 f1 = f + 1
                 fid.write('f %d %d %d\n' % (f1[0], f1[1], f1[2]))
                 
-        mesh = trimesh.load_mesh(f'{out_dir}/mesh_with_colors.obj')
+        mesh = trimesh.load_mesh(obj_vertext_path)
         print(f"=====> generate mesh with vertex shading time: {time.time() - st}")
         st = time.time()
 
         if not do_texture_mapping:
-            shutil.copy(f'{out_dir}/mesh_with_colors.obj', f'{out_dir}/mesh.obj')
-            mesh.export(f'{out_dir}/mesh.glb', file_type='glb')
+            shutil.copy(obj_vertext_path, obj_path)
+            mesh.export(glb_path, file_type='glb')
             return None
+            
 
         ##########  export texture  ########
+        
+        
         st = time.time()
         
         # uv unwrap 
@@ -224,9 +238,12 @@ class SVRMModel(torch.nn.Module):
 
         # Interpolate world space position
         gb_pos = ctx.interpolate_one(vtx_refine, rast[None, ...], faces_refine)[0][0]
+        
         with torch.no_grad():
             gb_mask_pos_scale = scale_tensor(gb_pos.unsqueeze(0).view(1, -1, 3), (-1, 1), (-1, 1))
+            
             tex_map = self.render.forward_points(cur_triplane, gb_mask_pos_scale)['rgb']
+            
             tex_map = tex_map.float().squeeze(0)  # (0, 1)
             tex_map = tex_map.view((texture_res, texture_res, 3)) 
             img = uv_padding(tex_map, hole_mask)
@@ -236,7 +253,7 @@ class SVRMModel(torch.nn.Module):
         verts = vtx_refine.cpu().numpy()[:, [1,2,0]] 
         faces = faces_refine.cpu().numpy()
 
-        with open(f'{out_dir}/texture.mtl', 'w') as fid:
+        with open(obj_mtl_path, 'w') as fid:
             fid.write('newmtl material_0\n')
             fid.write("Ka 1.000 1.000 1.000\n")
             fid.write("Kd 1.000 1.000 1.000\n")
@@ -245,7 +262,7 @@ class SVRMModel(torch.nn.Module):
             fid.write("illum 2\n")
             fid.write(f'map_Kd texture.png\n')
         
-        with open(f'{out_dir}/mesh.obj', 'w') as fid:
+        with open(obj_path, 'w') as fid:
             fid.write(f'mtllib texture.mtl\n')
             for pidx, pp in enumerate(verts):
                 fid.write('v %f %f %f\n' % (pp[0], pp[1], pp[2]))
@@ -257,8 +274,8 @@ class SVRMModel(torch.nn.Module):
                 f2 = t_tex_idx[i] + 1
                 fid.write('f %d/%d %d/%d %d/%d\n' % (f1[0], f2[0], f1[1], f2[1], f1[2], f2[2],))
 
-        cv2.imwrite(f'{out_dir}/texture.png', img[..., [2, 1, 0]])   
-        mesh = trimesh.load_mesh(f'{out_dir}/mesh.obj')
-        mesh.export(f'{out_dir}/mesh.glb', file_type='glb')
+        cv2.imwrite(obj_texture_path, img[..., [2, 1, 0]])   
+        mesh = trimesh.load_mesh(obj_path)
+        mesh.export(glb_path, file_type='glb')
         print(f"=====> generate mesh with texture shading time: {time.time() - st}")
   
