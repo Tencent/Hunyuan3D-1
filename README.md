@@ -19,11 +19,15 @@
 
 ## 🔥🔥🔥 News!!
 
-* Nov 21, 2024: 💬 We have introduced the new Baking module. Please give it a try!
-* Nov 20, 2024: 💬 We have added a Chinese version of the README.
-* Nov 18, 2024: 💬 Third-party developers have uploaded their ComfyUI. We appreciate their contributions! [[1]](https://github.com/jtydhr88/ComfyUI-Hunyuan3D-1-wrapper)[[2]](https://github.com/MrForExample/ComfyUI-3D-Pack)[[3]](https://github.com/TTPlanetPig/Comfyui_Hunyuan3D)
-* Nov 5, 2024: 💬 We support demo running  image_to_3d generation now. Please check the [script](#using-gradio) below.
-* Nov 5, 2024: 💬 We support demo running  text_to_3d generation now. Please check the [script](#using-gradio) below.
+- Jan 21, 2025: 💬 Enjoy exciting 3D generation on our website [Hunyuan3D Studio](https://3d.hunyuan.tencent.com)!
+- Jan 21, 2025: 💬 Release inference code and pretrained models of [Hunyuan3D 2.0](https://huggingface.co/tencent/Hunyuan3D-2).
+- Jan 21, 2025: 💬 Release Hunyuan3D 2.0. Please give it a try via [huggingface space](https://huggingface.co/spaces/tencent/Hunyuan3D-2) our [official site](https://3d.hunyuan.tencent.com)!
+
+- Nov 21, 2024: 💬 We have introduced the new Baking module. Please give it a try!
+- Nov 20, 2024: 💬 We have added a Chinese version of the README.
+- Nov 18, 2024: 💬 Third-party developers have uploaded their ComfyUI. We appreciate their contributions! [[1]](https://github.com/jtydhr88/ComfyUI-Hunyuan3D-1-wrapper)[[2]](https://github.com/MrForExample/ComfyUI-3D-Pack)[[3]](https://github.com/TTPlanetPig/Comfyui_Hunyuan3D)
+- Nov 5, 2024: 💬 We support demo running  image_to_3d generation now. Please check the [script](#using-gradio) below.
+- Nov 5, 2024: 💬 We support demo running  text_to_3d generation now. Please check the [script](#using-gradio) below.
 
 
 ## 📑 Open-source Plan
