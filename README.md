@@ -109,7 +109,7 @@ wget https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge
 ```
 
 <details>
-<summary>💡Other tips for envrionment installation</summary>
+<summary>💡Other tips for environment installation</summary>
     
 Optionally, you can install xformers or flash_attn to acclerate computation:
 
